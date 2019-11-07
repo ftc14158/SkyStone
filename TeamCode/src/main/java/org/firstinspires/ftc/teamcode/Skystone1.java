@@ -36,7 +36,8 @@ public class Skystone1 extends LinearOpMode {
             hardwareMap.dcMotor.get("drive-fl"),
             hardwareMap.dcMotor.get("drive-fr"),
             hardwareMap.dcMotor.get("drive-rl"),
-            hardwareMap.dcMotor.get("drive-rr")
+            hardwareMap.dcMotor.get("drive-rr"),
+                DcMotorSimple.Direction.REVERSE
             );
 
         mech.InitializeMotors();
@@ -55,29 +56,18 @@ public class Skystone1 extends LinearOpMode {
                 float speed;
 
                 // Put loop blocks here.
-                // The Y axis of a joystick ranges from -1 in its topmost position
-                // to +1 in its bottommost position. We negate this value so that
-                // the topmost position corresponds to maximum forward power.
 
-           //     mech.MechDrive(0, 1000, 0);
-           //     telemetry.update();
 
-                // wait
-           //     sleep(500);     // pause for servos to move
-                // stop
-          //      mech.MechDrive( 0, 0, 0);
-           //     sleep(200);
-
-                mech.MechDrive(500, 0, 0);
+                mech.MechSet(0, .5, 0);
                 sleep(5000);
 
-                mech.MechDrive(0, 0, 0);
+                mech.MechSet(0, 0, 0);
                 sleep(500);
 
-                mech.MechDrive(-500, 0, 0);
+                mech.MechSet(180, .5, 0);
                 sleep(5000);
 
-                mech.MechDrive(0, 0, 0);
+                mech.MechSet(0, 0, 0);
 
                 break;
 

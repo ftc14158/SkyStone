@@ -16,133 +16,86 @@ public class Mechanum  {
     public DcMotor drive_rl;
     public DcMotor drive_rr;
 
-    // Previous values for change detection
-    int PrevVD = 0; // Desired Robot Speed
-    int PrevThetaD = 0; // Desired Angle
-    int PrevVTheta = 0; // Desired Rotation Speed
+    public DcMotorSimple.Direction globalMotorDirection;
 
-    public Mechanum(DcMotor fl, DcMotor fr, DcMotor rl, DcMotor rr) {
+
+    public Mechanum(DcMotor fl, DcMotor fr, DcMotor rl, DcMotor rr, DcMotorSimple.Direction dir) {
         drive_fl = fl;
         drive_fr = fr;
         drive_rl = rl;
         drive_rr = rr;
+        globalMotorDirection = dir;
     }
 
-    private void initializeDriveMotor(DcMotor m) {
+    private void initializeDriveMotor(DcMotor m, DcMotorSimple.Direction dir) {
         m.setPower(0);
         m.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         m.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        m.setDirection(dir);
     }
 
     public void InitializeMotors() {
         for(DcMotor m : new DcMotor[] {drive_fl, drive_fr, drive_rl, drive_rr} )
-            initializeDriveMotor(m);
+            initializeDriveMotor(m, globalMotorDirection);
 
-        // Previous values for change detection
-        int PrevVD = 0; // Desired Robot Speed
-        int PrevThetaD = 0; // Desired Angle
-        int PrevVTheta = 0; // Desired Rotation Speed
     }
 
-    /**
-     **  Mechanum drive function
+
+    /***
+     * Apply power to motors to set given direction and speed
+     *
+     * @param angle     Desired angle relative to forward: 0 = straight ahead, 90 = right, -90 or 270 = left, 180 = back
+     * @param speed     Speed required from 0 to 1
+     * @param rotation  Clockwise (towards right) rotational speed to apply, from 0 to 1
      */
-    public void MechDrive(
-            int LR, // Left/Right Command
-            int FR, // Forward/Reverse Command
-            int CCW // Rotation command
-            ) {
+    public void MechSet(double angle, double speed, float rotation) {
+
+        // add 45 to desired angle to allow for mechanum wheel roller angle
+        double ThetaD45 = angle + 45; // compute once angle + 45 for use in the 4 equations
+
+        // Speeds to apply to motors (range 0 to 1)
+        double fl, fr, rl, rr;
 
 
-        int VD; // Desired Robot Speed
-        int ThetaD;  // Desired Angle
-        int VTheta;  // Desired Rotation Speed
+        fl =  ( (Math.sin( Math.toRadians(ThetaD45) ) ) ); // sin takes degrees and returns result * 1000
+        fr = ( (Math.cos( Math.toRadians(ThetaD45) ) )  );
+        rl =  ( (Math.cos( Math.toRadians(ThetaD45) ) )  );
+        rr =  ( (Math.sin( Math.toRadians(ThetaD45) ) )  );
 
-        int ThetaD45; // Desire Angle + 45o
+        // Add scale factor to achieve maximum power for any given distribution across drive wheels
+        double sc = 1/ Math.max(Math.max(Math.abs(fl), Math.abs(fr)), Math.max( Math.abs(rl), Math.abs(rr) ));
 
-        int V1; // Front Left motor
-        int V2; // Front Right motor
-        int V3; // Rear Left motor
-        int V4; // Rear Right motor
-        int RadioVD; // VD from joystick
-        int RadioTh; // Theta from joystick
+        speed = speed * sc;
 
-        //Capture joystick value
-        // X and Y values need to be from -1000 to +1000
-        // standard values are from -1 to +1
+        // scale speeds to desired power
 
-      //  LR = (int) ( gamepad1.left_stick_x * 1000 );
-      //  FR = (int) (-gamepad1.left_stick_y * 1000 );  // invert value because negative is up on joystick
-      //  CCW = (int) (gamepad1.right_stick_x * 1000 );
+        fl = fl * speed;
+        fr = fr * speed;
+        rl = rl * speed;
+        rr = rr * speed;
 
-        // Compute distance of joystick from center position in any direction
-        RadioVD = (int) ( ( Math.sqrt(LR * LR + FR * FR)) );
+//        System.out.format("%5.5f    %5.5f\n", fl, fr);
+//        System.out.format("%5.5f    %5.5f\n", rl, rr);
 
-        // Compute angle of X-Y
-        if( FR != 0 ) {
-            float x, y;
-            x = (float)LR;
-            y = (float)FR;
+        // add requested rotation power with scaling if > 1
 
-            RadioTh = (int) ( Math.toDegrees( Math.atan( x/y ) ) ); // atan takes input * 1000 and returns angle in degrees * 10
+        sc = 1/ Math.max(Math.max(Math.abs(fl+rotation), Math.abs(fr-rotation)), Math.max( Math.abs(rl+rotation), Math.abs(rr-rotation) ));
+        if (sc > 1) sc = 1;
 
-            //   telemetry.addData("Theta", "x "+x+" y "+y+" radioth "+RadioTh );
+  //      System.out.format("Scale %f\n", sc);
 
-            if( (LR >= 0) && (FR < 0) ) {
-                RadioTh += 180;
-            } else if( (LR < 0) && (FR < 0) ) {
-                RadioTh -= 180;
-            }
-        } else if (LR > 0) {
-            RadioTh = 90;
-        } else if (LR < 0) {
-            RadioTh = -90;
-        } else {
-            RadioTh = 0;
-        }
+        fl = (fl + rotation) * sc;
+        fr = (fr - rotation) * sc;
+        rl = (rl + rotation) * sc;
+        rr = (rr - rotation) * sc;
 
-        VD = RadioVD;
-        ThetaD = RadioTh;
-        VTheta = -CCW;
+    //    System.out.format("%5.5f    %5.5f\n", fl, fr);
+    //    System.out.format("%5.5f    %5.5f\n", rl, rr);
 
-        // Uncomment below to check captured values in console
-        //   telemetry.addData("Positions", "LR " + LR + " FR " + FR + " RadioVD " + RadioVD + " RadioTh " + RadioTh  );
-
-        // To avoid unnecessary computation, evaluate formulas only if change occurred
-
-        if( (VD != PrevVD) || (ThetaD != PrevThetaD) || (VTheta != PrevVTheta) ) {
-            ThetaD45 = ThetaD + 45; // compute once angle + 45 for use in the 4 equations
-
-            V1 = (int) ( (VD * Math.sin( Math.toRadians(ThetaD45) ) ) + VTheta ); // sin takes degrees and returns result * 1000
-            V2 = (int) ( (VD * Math.cos( Math.toRadians(ThetaD45) ) ) - VTheta );
-            V3 = (int) ( (VD * Math.cos( Math.toRadians(ThetaD45) ) ) + VTheta );
-            V4 = (int) ( (VD * Math.sin( Math.toRadians(ThetaD45) ) ) - VTheta );
-
-            // Uncomment below to view computed speeds in console
-
-            //telemetry.addData("Velocities", "V1 " +V1 + " V2 " + V2 + " V3 " + V3 + " V4 " + V4 );
-
-            // Save for detecting change at next loop execution
-
-            PrevVD = VD;
-            PrevThetaD = ThetaD;
-            PrevVTheta = VTheta;
-
-            // Apply to local motors
-            // v1 = fl, v2 = fr, v3 = rl, v4 = rr
-            float fl, fr, rl, rr;
-
-            fl = (float)V1 / 1000;
-            fr = (float)V2 / 1000;
-            rl = (float)V3 / 1000;
-            rr = (float)V4 / 1000;
-
-            drive_fl.setPower(fl);
-            drive_rl.setPower(rl);
-            drive_fr.setPower(-fr);
-            drive_rr.setPower(-rr);
-
-        } else { V1 = 0; V2 = 0; V3 = 0; V4 = 0; }
+        drive_fl.setPower(fl);
+        drive_rl.setPower(rl);
+        drive_fr.setPower(-fr);
+        drive_rr.setPower(-rr);
 
 
     }
