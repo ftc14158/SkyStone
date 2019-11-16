@@ -5,9 +5,9 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
-@Autonomous(name = "Skystone1", group = "")
+@Autonomous(name = "AutoRight", group = "")
 
-public class Skystone1 extends LinearOpMode {
+public class AutoRight extends LinearOpMode {
 
 
     private Mechanum mech;
@@ -33,12 +33,12 @@ public class Skystone1 extends LinearOpMode {
         // drive motors for the Mechanum wheels
 
         mech = new Mechanum(
-            hardwareMap.dcMotor.get("drive-fl"),
-            hardwareMap.dcMotor.get("drive-fr"),
-            hardwareMap.dcMotor.get("drive-rl"),
-            hardwareMap.dcMotor.get("drive-rr"),
+                hardwareMap.dcMotor.get("drive-fl"),
+                hardwareMap.dcMotor.get("drive-fr"),
+                hardwareMap.dcMotor.get("drive-rl"),
+                hardwareMap.dcMotor.get("drive-rr"),
                 DcMotorSimple.Direction.REVERSE
-            );
+        );
 
         mech.InitializeMotors();
 
@@ -56,13 +56,6 @@ public class Skystone1 extends LinearOpMode {
                 float speed;
 
                 // Put loop blocks here.
-
-
-                mech.MechSet(0, .5, 0);
-                sleep(2800);
-
-                mech.MechSet(0, 0, 0);
-                sleep(500);
 
                 mech.MechSet(90, .5, 0);
                 sleep(4000);
